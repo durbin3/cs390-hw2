@@ -2,8 +2,13 @@ import os
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+from tensorflow.keras import layers
 from tensorflow.keras.utils import to_categorical
+from tensorflow.keras import losses
 import random
+
+from tensorflow.python.keras.layers.core import Dropout
+from tensorflow.python.keras.layers.normalization.batch_normalization import BatchNormalization
 
 
 random.seed(1618)
@@ -14,12 +19,12 @@ tf.random.set_seed(1618)
 #tf.logging.set_verbosity(tf.logging.ERROR)   # Uncomment for TF1.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-ALGORITHM = "guesser"
-#ALGORITHM = "tf_net"
-#ALGORITHM = "tf_conv"
+# ALGORITHM = "guesser"
+# ALGORITHM = "tf_net"
+ALGORITHM = "tf_conv"
 
 DATASET = "mnist_d"
-#DATASET = "mnist_f"
+# DATASET = "mnist_f"
 #DATASET = "cifar_10"
 #DATASET = "cifar_100_f"
 #DATASET = "cifar_100_c"
@@ -37,11 +42,23 @@ elif DATASET == "mnist_f":
     IZ = 1
     IS = 784
 elif DATASET == "cifar_10":
-    pass                                 # TODO: Add this case.
+    NUM_CLASSES = 10
+    IH = 32
+    IW = 32
+    IZ = 3
+    IS = 1024
 elif DATASET == "cifar_100_f":
-    pass                                 # TODO: Add this case.
+    NUM_CLASSES = 100
+    IH = 32
+    IW = 32
+    IZ = 3
+    IS = 1024
 elif DATASET == "cifar_100_c":
-    pass                                 # TODO: Add this case.
+    NUM_CLASSES = 20
+    IH = 32
+    IW = 32
+    IZ = 3
+    IS = 1024
 
 
 #=========================<Classifier Functions>================================
@@ -56,13 +73,42 @@ def guesserClassifier(xTest):
 
 
 def buildTFNeuralNet(x, y, eps = 6):
-    pass        #TODO: Implement a standard ANN here.
-    return None
+    model = tf.keras.models.Sequential([
+        layers.Dense(2*IS//3, activation='relu'),
+        layers.Dropout(.2),
+        layers.Dense(2**2*IS//(3**2), activation='relu'),
+        layers.Dropout(.2),
+        layers.Dense(NUM_CLASSES)
+    ])
+    
+    loss = tf.keras.losses.MeanSquaredError()
+    model.compile(optimizer='adam',loss=loss,metrics=['accuracy'])
+    model.fit(x,y,epochs=eps)
+    return model
 
 
-def buildTFConvNet(x, y, eps = 10, dropout = True, dropRate = 0.2):
-    pass        #TODO: Implement a CNN here. dropout option is required.
-    return None
+def buildTFConvNet(x, y, eps = 6, dropout = True, dropRate = 0.25):
+    model = tf.keras.models.Sequential([
+        layers.Conv2D(32,(3,3),input_shape=(IW,IH,IZ), data_format='channels_last',activation='relu'),
+        layers.BatchNormalization(),
+        layers.Conv2D(32,(3,3), data_format='channels_last',activation='relu'),
+        layers.BatchNormalization(),
+        layers.MaxPool2D(pool_size=(2,2), data_format='channels_last'),
+        layers.Dropout(dropRate),
+        layers.Conv2D(64,(3,3), data_format='channels_last',activation='relu'),
+        layers.BatchNormalization(),
+        layers.MaxPool2D(pool_size=(2,2), data_format='channels_last'),
+        layers.Dropout(dropRate),
+        layers.Flatten(),
+        layers.Dense(32,activation='relu'),
+        layers.Dropout(dropRate),
+        layers.Dense(NUM_CLASSES)
+    ])
+    print(model.summary())
+    loss = losses.CategoricalCrossentropy()
+    model.compile(optimizer='adam',loss=loss,metrics=['accuracy'])
+    model.fit(x,y,epochs=eps)
+    return model
 
 #=========================<Pipeline Functions>==================================
 
@@ -74,11 +120,11 @@ def getRawData():
         mnist = tf.keras.datasets.fashion_mnist
         (xTrain, yTrain), (xTest, yTest) = mnist.load_data()
     elif DATASET == "cifar_10":
-        pass      # TODO: Add this case.
+        (xTrain, yTrain), (xTest, yTest) = keras.datasets.cifar10.load_data()
     elif DATASET == "cifar_100_f":
-        pass      # TODO: Add this case.
+        (xTrain, yTrain), (xTest, yTest) = tf.keras.datasets.cifar100.load_data(label_mode="fine")
     elif DATASET == "cifar_100_c":
-        pass      # TODO: Add this case.
+        (xTrain, yTrain), (xTest, yTest) = tf.keras.datasets.cifar100.load_data(label_mode="coarse")
     else:
         raise ValueError("Dataset not recognized.")
     print("Dataset: %s" % DATASET)
@@ -92,6 +138,8 @@ def getRawData():
 
 def preprocessData(raw):
     ((xTrain, yTrain), (xTest, yTest)) = raw
+    if (DATASET == "mnist_d" or DATASET == "mnist_f"):
+        xTrain, xTest = xTrain / 255.0, xTest / 255.0  
     if ALGORITHM != "tf_conv":
         xTrainP = xTrain.reshape((xTrain.shape[0], IS))
         xTestP = xTest.reshape((xTest.shape[0], IS))
