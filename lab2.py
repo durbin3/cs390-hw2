@@ -29,48 +29,6 @@ tf.random.set_seed(1618)
 #tf.logging.set_verbosity(tf.logging.ERROR)   # Uncomment for TF1.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-# ALGORITHM = "guesser"
-# ALGORITHM = "tf_net"
-# ALGORITHM = "tf_conv"
-
-# DATASET = "mnist_d"
-# DATASET = "mnist_f"
-#DATASET = "cifar_10"
-#DATASET = "cifar_100_f"
-#DATASET = "cifar_100_c"
-
-# if DATASET == "mnist_d":
-#     NUM_CLASSES = 10
-#     IH = 28
-#     IW = 28
-#     IZ = 1
-#     IS = 784
-# elif DATASET == "mnist_f":
-#     NUM_CLASSES = 10
-#     IH = 28
-#     IW = 28
-#     IZ = 1
-#     IS = 784
-# elif DATASET == "cifar_10":
-#     NUM_CLASSES = 10
-#     IH = 32
-#     IW = 32
-#     IZ = 3
-#     IS = 1024
-# elif DATASET == "cifar_100_f":
-#     NUM_CLASSES = 100
-#     IH = 32
-#     IW = 32
-#     IZ = 3
-#     IS = 1024
-# elif DATASET == "cifar_100_c":
-#     NUM_CLASSES = 20
-#     IH = 32
-#     IW = 32
-#     IZ = 3
-#     IS = 1024
-
-
 #=========================<Classifier Functions>================================
 
 def guesserClassifier(xTest, NUM_CLASSES):
@@ -104,7 +62,7 @@ def buildTFNeuralNet(x, y, meta_data, eps = 6):
     ])
     
     if (os.path.exists(checkpoint_dir)):
-        model.load_weights(checkpoint_path)
+        model.load_weights(checkpoint_path).expect_partial()
     else:
         loss = losses.MeanSquaredError()
         model.compile(optimizer='adam',loss=loss,metrics=['accuracy'])
@@ -112,7 +70,7 @@ def buildTFNeuralNet(x, y, meta_data, eps = 6):
     return model
 
 
-def buildTFConvNet(x, y, meta_data,eps = 10, dropout = True, dropRate = 0.25):
+def buildTFConvNet(x, y, meta_data,eps = 20, dropout = True, dropRate = 0.25):
     DATASET,ALGORITHM,NUM_CLASSES,IH,IW,IZ,IS = meta_data
     checkpoint_path = "model_weights/conv_"+DATASET+"/ann_cp.ckpt"
     checkpoint_dir = os.path.dirname(checkpoint_path)
@@ -125,32 +83,82 @@ def buildTFConvNet(x, y, meta_data,eps = 10, dropout = True, dropRate = 0.25):
         verbose=1
     )
     model = tf.keras.models.Sequential()
-    
-    model.add(layers.Conv2D(32,(3,3),input_shape=(IW,IH,IZ),padding='same', data_format='channels_last',activation='relu'))
-    model.add(layers.MaxPool2D(pool_size=(2,2)))
-    if dropout: model.add(layers.Dropout(dropRate))
-    
-    model.add(layers.Conv2D(64,(3,3),padding='same',activation='relu'))
-    model.add(layers.MaxPool2D(pool_size=(2,2)))
-    if dropout: model.add(layers.Dropout(dropRate))
-    
-    model.add(layers.Conv2D(128,(3,3),padding='same',activation='relu'))
-    model.add(layers.MaxPool2D(pool_size=(2,2)))
-    if dropout: model.add(layers.Dropout(dropRate))
-    
-    model.add(layers.Conv2D(256,(3,3),padding='same',activation='relu'))
-    model.add(layers.MaxPool2D(pool_size=(2,2)))
-    if dropout: model.add(layers.Dropout(dropRate))
-    
-    model.add(layers.Flatten())
-    model.add(layers.Dense(128))
-    if dropout: model.add(layers.Dropout(dropRate))
-    
-    model.add(layers.Dense(NUM_CLASSES, activation='softmax'))
-    
-    print(model.summary())
+    if (DATASET == 'mnist_d' or DATASET == 'cifar_10' or DATASET == 'cifar_100_c'):
+            
+        model.add(layers.Conv2D(32,(3,3),input_shape=(IW,IH,IZ),padding='same', data_format='channels_last',activation='relu'))
+        model.add(layers.MaxPool2D(pool_size=(2,2)))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Conv2D(64,(3,3),padding='same',activation='relu'))
+        model.add(layers.MaxPool2D(pool_size=(2,2)))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Conv2D(128,(3,3),padding='same',activation='relu'))
+        model.add(layers.MaxPool2D(pool_size=(2,2)))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Conv2D(256,(3,3),padding='same',activation='relu'))
+        model.add(layers.MaxPool2D(pool_size=(2,2)))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Flatten())
+        model.add(layers.Dense(128,activation='relu'))
+        if dropout: model.add(layers.Dropout(dropRate))
+        model.add(layers.Dense(64,activation='relu'))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Dense(NUM_CLASSES, activation='softmax'))
+    elif (DATASET == 'mnist_f'):
+        dropRate = .2
+        model.add(layers.Conv2D(32,(3,3),input_shape=(IW,IH,IZ),padding='same', data_format='channels_last',activation='relu'))
+        model.add(layers.MaxPool2D(pool_size=(2,2)))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Conv2D(64,(3,3),padding='same',activation='relu'))
+        model.add(layers.MaxPool2D(pool_size=(2,2)))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Conv2D(128,(3,3),padding='same',activation='relu'))
+        model.add(layers.MaxPool2D(pool_size=(2,2)))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Conv2D(256,(3,3),padding='same',activation='relu'))
+        model.add(layers.MaxPool2D(pool_size=(2,2)))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Flatten())
+        model.add(layers.Dense(128,activation='relu'))
+        if dropout: model.add(layers.Dropout(dropRate))
+        model.add(layers.Dense(64,activation='relu'))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Dense(NUM_CLASSES, activation='softmax'))
+        
+    else:
+        dropRate = .25    
+        eps = 30 
+        model.add(layers.Conv2D(32,(3,3),input_shape=(IW,IH,IZ),padding='same', data_format='channels_last',activation='relu'))
+        model.add(layers.MaxPool2D(pool_size=(2,2)))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Conv2D(64,(3,3),padding='same',activation='relu'))
+        model.add(layers.MaxPool2D(pool_size=(2,2)))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Conv2D(128,(3,3),padding='same',activation='relu'))
+        model.add(layers.MaxPool2D(pool_size=(2,2)))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Flatten())
+        model.add(layers.Dense(256,activation='relu'))
+        if dropout: model.add(layers.Dropout(dropRate))
+        model.add(layers.Dense(128,activation='relu'))
+        if dropout: model.add(layers.Dropout(dropRate))
+        
+        model.add(layers.Dense(NUM_CLASSES, activation='softmax'))
+        
     if (os.path.exists(checkpoint_dir)):
-        model.load_weights(checkpoint_path)
+        model.load_weights(checkpoint_path).expect_partial()
     else:
         loss = losses.CategoricalCrossentropy()
         model.compile(optimizer='adam',loss=loss,metrics=['accuracy'])
@@ -184,7 +192,7 @@ def getRawData(meta_data):
 
 
 
-def preprocessData(raw,meta_data):
+def preprocessData(raw,meta_data,random_crop=False):
     DATASET,ALGORITHM,NUM_CLASSES,IH,IW,IZ,IS = meta_data
     ((xTrain, yTrain), (xTest, yTest)) = raw
 
@@ -198,6 +206,21 @@ def preprocessData(raw,meta_data):
         xTestP = xTest.reshape((xTest.shape[0], IH, IW, IZ))
     yTrainP = to_categorical(yTrain, NUM_CLASSES)
     yTestP = to_categorical(yTest, NUM_CLASSES)
+    
+    # if (random_crop and (DATASET != "mnist_d" or DATASET != "mnist_f")):
+    if (random_crop == False):
+        print("cropping")
+        images = xTrainP.reshape((xTrainP.shape[0],IH,IW,IZ))
+        xFlips = tf.image.random_flip_left_right(images)
+        xCrops = tf.image.random_crop(images, (xTrainP.shape[0],7*IH//10,7*IW//10,IZ))
+        xCrops = tf.image.resize_with_crop_or_pad(xCrops,IH,IW)
+        cats = yTrainP
+        xTrainP = xFlips
+        xTrainP = tf.concat([xTrainP,xCrops],0)
+        yTrainP = tf.concat([yTrainP,cats],0)
+        
+        
+
     print("New shape of xTrain dataset: %s." % str(xTrainP.shape))
     print("New shape of xTest dataset: %s." % str(xTestP.shape))
     print("New shape of yTrain dataset: %s." % str(yTrainP.shape))
@@ -274,10 +297,10 @@ def main():
     accuracies.append(run_nn(mnist_ann))
     accuracies.append(run_nn(mnist_f_ann))
     accuracies.append(run_nn(cf_10_ann))
-    accuracies.append(run_nn(cf_100f_ann))
     accuracies.append(run_nn(cf_100c_ann))
+    accuracies.append(run_nn(cf_100f_ann))
     
-    plot_bar(accuracies, ['MNIST_D','MNIST_F','CIFAR_10','CIFAR_100_F','CIFAR_100_C'])
+    plot_bar(accuracies, ['MNIST_D','MNIST_F','CIFAR_10','CIFAR_100_C','CIFAR_100_F'])
 
     
 def set_meta_data(alg,dataset):
@@ -313,7 +336,7 @@ def set_meta_data(alg,dataset):
 def run_nn(meta_data):
     DATASET,alg,NUM_CLASSES,IH,IW,IZ,IS = meta_data
     raw = getRawData(meta_data)
-    data = preprocessData(raw,meta_data)
+    data = preprocessData(raw,meta_data,True)
     model = trainModel(data[0],meta_data)
     preds = runModel(data[1][0], model,meta_data)
     acc = evalResults(data[1], preds,meta_data)
@@ -322,7 +345,8 @@ def run_nn(meta_data):
 def plot_bar(x,x_labels):
     x_pos = np.arange(len(x))
     x_pos = [x for x in x_pos]
-    print(x,x_pos,x_labels)
+    print(x_labels)
+    print(x)
     plt.xticks(x_pos, x_labels)
     plt.xlabel("Dataset")
     plt.title("Accuracy by Dataset")
